@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='UTF-8'>
+<meta name='viewport' content='width=device-width,initial-scale=1'>
+<title>Plagiarism Detection Report</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono&display=swap');
+  :root{--bg:#000814;--surf:#0b1736;--card:#1f2d4a;--accent:#00b4d8;--text:#e2e8f0;--muted:#94a3b8;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:linear-gradient(135deg,var(--bg),#001d3d);color:var(--text);font-family:Inter,sans-serif;min-height:100vh;padding:0 0 60px}
+  header{text-align:center;padding:48px 20px 32px;border-bottom:1px solid rgba(255,255,255,.08)}
+  header h1{font-size:2rem;font-weight:700;color:var(--accent)}
+  header p{color:var(--muted);margin-top:8px}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 20px}
+  h2{color:var(--accent);font-size:1.1rem;margin:36px 0 14px}
+  .tbl-wrap{overflow-x:auto;border-radius:12px}
+  table{width:100%;border-collapse:collapse;font-size:.88rem}
+  th{background:var(--surf);padding:11px 14px;text-align:left;color:var(--muted);font-weight:600;white-space:nowrap;border-bottom:1px solid rgba(255,255,255,.06)}
+  td{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.04);background:rgba(11,23,54,.55);font-family:'JetBrains Mono',monospace;font-size:.82rem}
+  tr:last-child td{border-bottom:none}
+  .badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:.75rem;font-weight:700;font-family:Inter,sans-serif}
+  .high{background:rgba(239,68,68,.18);color:#ef4444}
+  .medium{background:rgba(245,158,11,.18);color:#f59e0b}
+  .low{background:rgba(34,197,94,.18);color:#22c55e}
+  .bar-wrap{display:flex;align-items:center;gap:8px}
+  .bar{flex:1;height:6px;background:rgba(255,255,255,.08);border-radius:999px;overflow:hidden;min-width:60px}
+  .bar-fill{height:100%;border-radius:999px}
+  .bar-val{min-width:40px;text-align:right}
+  .doc-card{background:var(--surf);border-radius:14px;padding:20px;margin-bottom:16px;border:1px solid rgba(255,255,255,.06)}
+  .doc-card h3{font-size:1rem;margin-bottom:14px;color:var(--accent)}
+  .doc-card h4{font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+  .textbox{background:var(--card);border-radius:10px;padding:12px 14px;max-height:200px;overflow-y:auto;white-space:pre-wrap;font-family:'JetBrains Mono',monospace;font-size:.78rem;color:#c7d4e8;line-height:1.6;margin-bottom:14px}
+</style>
+</head>
+<body>
+<header>
+  <h1>&#128218; Plagiarism Detection Report</h1>
+  <p>Handwritten document comparison &mdash; WordMatch | LCS | Edit Distance | TF-IDF</p>
+</header>
+<div class='wrap'>
+<h2>&#128202; Similarity Results</h2>
+<div class='tbl-wrap'>
+<table>
+<thead><tr><th>File 1</th><th>File 2</th><th>WordMatch %</th><th>LCS %</th><th>Edit %</th><th>TF-IDF %</th><th>Final Score</th><th>Level</th></tr></thead>
+<tbody>
+<tr><td>hee.png</td><td>mee.jpeg</td><td>3.87</td><td>27.22</td><td>24.67</td><td>2.40</td><td><div class='bar-wrap'><div class='bar'><div class='bar-fill' style='width:12%;background:#22c55e'></div></div><span class='bar-val'>12.11%</span></div></td><td><span class='badge low'>Low</span></td></tr>
+</tbody>
+</table>
+</div>
+<h2>&#128196; OCR + Cleaned Text Details</h2>
+<div class='doc-card'>
+<h3>&#128196; hee.png</h3>
+<h4>Extracted OCR Text</h4>
+<div class='textbox'>heena cimact town dedede uttar aad heenna cre gniell vom ag dppf sering manager forge electret ug bres sangiere keay aten subyeet appuauen ff softee erugi tees fegiren demy fr man writing apply yor sopra en guite pounce baryious z om cas pee tg pura wy matte ler teennelogy areca aud machina tearing end mw te otart st oe geneal revise prin ao rupted soy tf prope lrg array j haut aullopeda areny fewtdariom poy rtt languiny fun ua pytrier send mr itle nd ye os aw algo shaw ee warited aclelswrle profeces heyyy array eel ay rr testers able wearer tis jom qui heurnn protected eel pamennte awh coninalo gs f corn ser aee hae ny aed coeteyn fe learn east hl ee nee sorter phe tf fp otus yous cpg aine ey wow appreciate iu opprercwanity go cee bete hr oper catey wnt errr tpaasiny ospmes vias thani yew sare fours beer ceiely
+</div>
+<h4>Cleaned Text</h4>
+<div class='textbox'>heena cimact town dedede uttar aad heenna cre gniell vom ag dppf sering manager forge electret ug bres sangiere keay aten subyeet appuauen ff softee erugi tees fegiren demy fr man writing apply yor sopra en guite pounce baryious z om cas pee tg pura wy matte ler teennelogy areca aud machina tearing end mw te otart st oe geneal revise prin ao rupted soy tf prope lrg array j haut aullopeda areny fewtdariom poy rtt languiny fun ua pytrier send mr itle nd ye os aw algo shaw ee warited aclelswrle profeces heyyy array eel ay rr testers able wearer tis jom qui heurnn protected eel pamennte awh coninalo gs f corn ser aee hae ny aed coeteyn fe learn east hl ee nee sorter phe tf fp otus yous cpg aine ey wow appreciate iu opprercwanity go cee bete hr oper catey wnt errr tpaasiny ospmes vias thani yew sare fours beer ceiely</div>
+</div>
+<div class='doc-card'>
+<h3>&#128196; mee.jpeg</h3>
+<h4>Extracted OCR Text</h4>
+<div class='textbox'>sainvk vihar turner road achradun uttarakhand may lor hiving manager lrfosys ltd fang lex farnetaka subject athition tm fort op saft sre taginemig kesbected sit madam lom willing soe pon et le apeie sar lon jn lonfutts mins sey eee pad bone wa te bn ol rssionste ale levit sld et gs eee fe tin kind r dan j ppm kn shath le thantid rp fours cen menaksh fade
+</div>
+<h4>Cleaned Text</h4>
+<div class='textbox'>sainvk vihar turner road achradun uttarakhand may lor hiving manager lrfosys ltd fang lex farnetaka subject athition tm fort op saft sre taginemig kesbected sit madam lom willing soe pon et le apeie sar lon jn lonfutts mins sey eee pad bone wa te bn ol rssionste ale levit sld et gs eee fe tin kind r dan j ppm kn shath le thantid rp fours cen menaksh fade</div>
+</div>
+</div>
+</body>
+</html>

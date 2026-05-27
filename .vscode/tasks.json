@@ -1,0 +1,27 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build Plagiarism Detector",
+      "type": "shell",
+      "command": "gcc",
+      "args": [
+        "-o", "plagiarism_detector.exe",
+        "main.c",
+        "algorithm.c",
+        "text_extraction.c",
+        "image_processing.c",
+        "frontend_backend.c",
+        "-lm",
+        "-Wall",
+        "-Wextra"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": ["$gcc"],
+      "detail": "Compiles all C source files"
+    }
+  ]
+}   

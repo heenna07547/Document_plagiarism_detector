@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plagiarism Detector</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #07090f;
+    --surface: #0f1420;
+    --card: #151c2c;
+    --border: rgba(255,255,255,0.07);
+    --border-bright: rgba(255,255,255,0.14);
+    --accent: #4af4c2;
+    --accent2: #7b6dff;
+    --warn: #ffb84d;
+    --danger: #ff5e5e;
+    --text: #e8edf8;
+    --muted: #6b7a99;
+    --mono: 'Space Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Grid noise background ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(74,244,194,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(74,244,194,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Top corner glow ── */
+  body::after {
+    content: '';
+    position: fixed;
+    top: -200px; right: -200px;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(123,109,255,0.12) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .page { position: relative; z-index: 1; }
+
+  /* ── Header ── */
+  header {
+    padding: 56px 40px 40px;
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+  }
+  .logo-block { display: flex; align-items: center; gap: 16px; }
+  .logo-icon {
+    width: 48px; height: 48px;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    border-radius: 12px;
+    display: grid; place-items: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  .logo-text h1 {
+    font-size: 1.3rem; font-weight: 800;
+    letter-spacing: -0.02em; line-height: 1.1;
+  }
+  .logo-text p {
+    font-size: 0.75rem; color: var(--muted);
+    font-family: var(--mono); margin-top: 3px;
+  }
+  .header-badge {
+    background: rgba(74,244,194,0.08);
+    border: 1px solid rgba(74,244,194,0.2);
+    color: var(--accent);
+    font-size: 0.7rem; font-family: var(--mono);
+    padding: 6px 14px; border-radius: 999px;
+    white-space: nowrap;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .header-badge::before {
+    content: '';
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* ── Section wrap ── */
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 0 40px 80px; }
+
+  /* ── Upload zone ── */
+  .upload-section { margin-bottom: 40px; }
+  .section-label {
+    font-size: 0.7rem; font-family: var(--mono);
+    color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em;
+    margin-bottom: 14px; display: flex; align-items: center; gap: 10px;
+  }
+  .section-label::after {
+    content: ''; flex: 1; height: 1px;
+    background: var(--border);
+  }
+
+  .upload-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 640px) { .upload-grid { grid-template-columns: 1fr; } }
+
+  .upload-card {
+    background: var(--card);
+    border: 1.5px dashed var(--border-bright);
+    border-radius: 16px;
+    padding: 28px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .upload-card:hover {
+    border-color: rgba(74,244,194,0.4);
+    background: rgba(74,244,194,0.03);
+  }
+  .upload-card.has-file {
+    border-color: rgba(74,244,194,0.5);
+    border-style: solid;
+    background: rgba(74,244,194,0.04);
+  }
+  .upload-card.drag-over {
+    border-color: var(--accent);
+    background: rgba(74,244,194,0.07);
+  }
+  .upload-card input[type=file] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; z-index: 2;
+  }
+  .upload-inner { display: flex; align-items: center; gap: 16px; }
+  .upload-icon {
+    width: 44px; height: 44px; border-radius: 10px;
+    background: rgba(123,109,255,0.12);
+    display: grid; place-items: center; font-size: 20px; flex-shrink: 0;
+  }
+  .upload-card.has-file .upload-icon { background: rgba(74,244,194,0.12); }
+  .upload-meta { flex: 1; min-width: 0; }
+  .upload-meta .doc-label {
+    font-size: 0.72rem; font-family: var(--mono);
+    color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em;
+    margin-bottom: 3px;
+  }
+  .upload-meta .doc-name {
+    font-size: 0.9rem; font-weight: 600;
+    color: var(--text); white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .upload-meta .doc-hint {
+    font-size: 0.75rem; color: var(--muted); font-family: var(--mono);
+    margin-top: 2px;
+  }
+  .upload-meta .doc-name.placeholder { color: var(--muted); font-weight: 400; }
+  .upload-check {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--accent); display: grid; place-items: center;
+    font-size: 13px; flex-shrink: 0; display: none;
+  }
+  .upload-card.has-file .upload-check { display: grid; }
+
+  /* ── Analyze button ── */
+  .analyze-row {
+    display: flex; align-items: center; gap: 16px;
+    margin-top: 20px;
+  }
+  .btn-analyze {
+    background: linear-gradient(135deg, var(--accent2), #9b8fff);
+    border: none; border-radius: 12px;
+    color: #fff; font-family: var(--sans);
+    font-size: 0.9rem; font-weight: 700;
+    padding: 14px 32px; cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    letter-spacing: 0.01em;
+  }
+  .btn-analyze:hover { opacity: 0.88; transform: translateY(-1px); }
+  .btn-analyze:active { transform: translateY(0); }
+  .btn-analyze:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+  .analyze-hint { font-size: 0.75rem; color: var(--muted); font-family: var(--mono); }
+
+  /* ── Progress bar ── */
+  .progress-bar-wrap {
+    height: 3px; background: var(--border);
+    border-radius: 999px; overflow: hidden;
+    margin-top: 16px; display: none;
+  }
+  .progress-bar-fill {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    border-radius: 999px;
+    transition: width 0.4s ease;
+  }
+
+  /* ── Status log ── */
+  .log-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--muted);
+    min-height: 60px;
+    max-height: 140px;
+    overflow-y: auto;
+    line-height: 1.8;
+    margin-top: 16px;
+    display: none;
+  }
+  .log-box .log-line { display: flex; align-items: baseline; gap: 8px; }
+  .log-box .log-line.ok { color: var(--accent); }
+  .log-box .log-line.warn { color: var(--warn); }
+  .log-box .log-line.info { color: #7b93cc; }
+  .log-ts { color: var(--muted); font-size: 0.68rem; flex-shrink: 0; }
+
+  /* ── Results ── */
+  #results-section { display: none; margin-top: 10px; }
+
+  /* ── Score hero ── */
+  .score-hero {
+    background: var(--card);
+    border: 1px solid var(--border-bright);
+    border-radius: 20px;
+    padding: 32px 36px;
+    margin-bottom: 24px;
+    display: flex; align-items: center; gap: 36px;
+    flex-wrap: wrap;
+  }
+  .score-donut { position: relative; width: 120px; height: 120px; flex-shrink: 0; }
+  .score-donut svg { width: 120px; height: 120px; transform: rotate(-90deg); }
+  .score-donut .donut-bg { fill: none; stroke: rgba(255,255,255,0.07); stroke-width: 10; }
+  .score-donut .donut-fill { fill: none; stroke-width: 10; stroke-linecap: round;
+    transition: stroke-dasharray 0.8s cubic-bezier(0.4,0,0.2,1); }
+  .score-donut-center {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+  }
+  .score-donut-center .pct {
+    font-family: var(--mono); font-weight: 700;
+    font-size: 1.6rem; line-height: 1;
+  }
+  .score-donut-center .pct-label {
+    font-size: 0.62rem; color: var(--muted); margin-top: 2px;
+  }
+
+  .score-details { flex: 1; min-width: 200px; }
+  .score-details h2 {
+    font-size: 1.4rem; font-weight: 800; letter-spacing: -0.02em;
+    margin-bottom: 8px;
+  }
+  .score-details .pair-names {
+    font-family: var(--mono); font-size: 0.78rem; color: var(--muted);
+    margin-bottom: 20px;
+  }
+  .score-details .pair-names span { color: var(--text); }
+
+  .algo-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+  }
+  @media (max-width: 700px) { .algo-grid { grid-template-columns: repeat(2,1fr); } }
+
+  .algo-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+  }
+  .algo-card .algo-name {
+    font-size: 0.65rem; font-family: var(--mono);
+    color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.08em; margin-bottom: 6px;
+  }
+  .algo-card .algo-val {
+    font-size: 1.25rem; font-weight: 700; font-family: var(--mono);
+  }
+  .algo-card .algo-bar {
+    height: 3px; background: var(--border);
+    border-radius: 999px; margin-top: 8px; overflow: hidden;
+  }
+  .algo-card .algo-bar-fill {
+    height: 100%; border-radius: 999px;
+    transition: width 0.7s ease 0.2s;
+  }
+
+  /* ── Level badge ── */
+  .level-badge {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 7px 18px; border-radius: 999px;
+    font-size: 0.78rem; font-weight: 700; font-family: var(--mono);
+  }
+  .level-badge::before {
+    content: ''; width: 7px; height: 7px; border-radius: 50%;
+  }
+  .level-badge.low {
+    background: rgba(74,244,194,0.1);
+    color: var(--accent);
+    border: 1px solid rgba(74,244,194,0.25);
+  }
+  .level-badge.low::before { background: var(--accent); }
+  .level-badge.medium {
+    background: rgba(255,184,77,0.1);
+    color: var(--warn);
+    border: 1px solid rgba(255,184,77,0.25);
+  }
+  .level-badge.medium::before { background: var(--warn); }
+  .level-badge.high {
+    background: rgba(255,94,94,0.1);
+    color: var(--danger);
+    border: 1px solid rgba(255,94,94,0.25);
+  }
+  .level-badge.high::before { background: var(--danger); }
+
+  /* ── OCR text panels ── */
+  .ocr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 4px; }
+  @media (max-width: 640px) { .ocr-grid { grid-template-columns: 1fr; } }
+
+  .ocr-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .ocr-card-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .ocr-file-icon {
+    width: 28px; height: 28px; border-radius: 6px;
+    background: rgba(123,109,255,0.15);
+    display: grid; place-items: center; font-size: 14px;
+  }
+  .ocr-card-header .filename {
+    font-size: 0.85rem; font-weight: 600; flex: 1;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .ocr-tabs { display: flex; gap: 0; }
+  .ocr-tab-btn {
+    font-family: var(--mono); font-size: 0.65rem;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 4px 10px; border-radius: 6px;
+    cursor: pointer; color: var(--muted);
+    background: transparent; border: none;
+    transition: color 0.15s, background 0.15s;
+  }
+  .ocr-tab-btn.active { color: var(--accent); background: rgba(74,244,194,0.1); }
+  .ocr-textbox {
+    padding: 16px 18px;
+    font-family: var(--mono); font-size: 0.75rem;
+    color: #aabbd4; line-height: 1.8;
+    max-height: 180px; overflow-y: auto;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .ocr-textbox.empty { color: var(--muted); font-style: italic; }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 999px; }
+
+  /* ── Animations ── */
+  .fade-in { animation: fadeIn 0.4s ease forwards; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  .spinner {
+    display: inline-block; width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,0.2);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Footer ── */
+  footer {
+    text-align: center; padding: 24px;
+    font-family: var(--mono); font-size: 0.68rem; color: var(--muted);
+    border-top: 1px solid var(--border);
+    position: relative; z-index: 1;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <div class="logo-block">
+    <div class="logo-icon">📄</div>
+    <div class="logo-text">
+      <h1>PlagiaDetect</h1>
+      <p>Handwritten Document Analysis</p>
+    </div>
+  </div>
+  <div class="header-badge">v1.0 · WordMatch · LCS · Edit · TF-IDF</div>
+</header>
+
+<div class="wrap">
+
+  <!-- Upload Section -->
+  <div class="upload-section">
+    <div class="section-label">Upload Documents</div>
+    <div class="upload-grid">
+      <div class="upload-card" id="card1">
+        <input type="file" id="file1" accept=".txt,.png,.jpg,.jpeg,.pdf">
+        <div class="upload-inner">
+          <div class="upload-icon">📄</div>
+          <div class="upload-meta">
+            <div class="doc-label">Document A</div>
+            <div class="doc-name placeholder" id="name1">Choose file…</div>
+            <div class="doc-hint">txt · png · jpg · jpeg · pdf</div>
+          </div>
+          <div class="upload-check">✓</div>
+        </div>
+      </div>
+      <div class="upload-card" id="card2">
+        <input type="file" id="file2" accept=".txt,.png,.jpg,.jpeg,.pdf">
+        <div class="upload-inner">
+          <div class="upload-icon">📄</div>
+          <div class="upload-meta">
+            <div class="doc-label">Document B</div>
+            <div class="doc-name placeholder" id="name2">Choose file…</div>
+            <div class="doc-hint">txt · png · jpg · jpeg · pdf</div>
+          </div>
+          <div class="upload-check">✓</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="analyze-row">
+      <button class="btn-analyze" id="analyzeBtn" disabled>Analyze</button>
+      <span class="analyze-hint" id="analyzeHint">Select two documents to begin</span>
+    </div>
+
+    <div class="progress-bar-wrap" id="progressWrap">
+      <div class="progress-bar-fill" id="progressFill"></div>
+    </div>
+    <div class="log-box" id="logBox"></div>
+  </div>
+
+  <!-- Results Section -->
+  <div id="results-section">
+    <div class="section-label">Analysis Results</div>
+
+    <!-- Score Hero -->
+    <div class="score-hero fade-in" id="scoreHero">
+      <div class="score-donut">
+        <svg viewBox="0 0 120 120">
+          <circle class="donut-bg" cx="60" cy="60" r="50"/>
+          <circle class="donut-fill" id="donutFill" cx="60" cy="60" r="50"
+            stroke-dasharray="0 314" stroke-dashoffset="0"/>
+        </svg>
+        <div class="score-donut-center">
+          <span class="pct" id="finalPct">—</span>
+          <span class="pct-label">final</span>
+        </div>
+      </div>
+
+      <div class="score-details">
+        <div class="pair-names" id="pairNames">— vs —</div>
+        <h2 id="verdictText">Analyzing…</h2>
+        <div style="margin-top: 16px;">
+          <span class="level-badge" id="levelBadge">—</span>
+        </div>
+
+        <div class="algo-grid" style="margin-top: 20px;">
+          <div class="algo-card">
+            <div class="algo-name">WordMatch</div>
+            <div class="algo-val" id="wm-val">—</div>
+            <div class="algo-bar"><div class="algo-bar-fill" id="wm-bar" style="width:0%;background:var(--accent2)"></div></div>
+          </div>
+          <div class="algo-card">
+            <div class="algo-name">LCS</div>
+            <div class="algo-val" id="lcs-val">—</div>
+            <div class="algo-bar"><div class="algo-bar-fill" id="lcs-bar" style="width:0%;background:#5bcef0"></div></div>
+          </div>
+          <div class="algo-card">
+            <div class="algo-name">Edit Dist</div>
+            <div class="algo-val" id="edit-val">—</div>
+            <div class="algo-bar"><div class="algo-bar-fill" id="edit-bar" style="width:0%;background:var(--accent)"></div></div>
+          </div>
+          <div class="algo-card">
+            <div class="algo-name">TF-IDF</div>
+            <div class="algo-val" id="tfidf-val">—</div>
+            <div class="algo-bar"><div class="algo-bar-fill" id="tfidf-bar" style="width:0%;background:var(--warn)"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OCR Text Details -->
+    <div class="section-label">Extracted Text</div>
+    <div class="ocr-grid">
+      <div class="ocr-card fade-in" id="ocrCardA">
+        <div class="ocr-card-header">
+          <div class="ocr-file-icon">📄</div>
+          <div class="filename" id="ocrNameA">Document A</div>
+          <div class="ocr-tabs">
+            <button class="ocr-tab-btn active" onclick="switchTab(0,'raw')">Raw</button>
+            <button class="ocr-tab-btn" onclick="switchTab(0,'clean')">Clean</button>
+          </div>
+        </div>
+        <div class="ocr-textbox" id="ocrTextA">—</div>
+      </div>
+      <div class="ocr-card fade-in" id="ocrCardB">
+        <div class="ocr-card-header">
+          <div class="ocr-file-icon">📄</div>
+          <div class="filename" id="ocrNameB">Document B</div>
+          <div class="ocr-tabs">
+            <button class="ocr-tab-btn active" onclick="switchTab(1,'raw')">Raw</button>
+            <button class="ocr-tab-btn" onclick="switchTab(1,'clean')">Clean</button>
+          </div>
+        </div>
+        <div class="ocr-textbox" id="ocrTextB">—</div>
+      </div>
+    </div>
+
+    <!-- Download Report -->
+    <div style="margin-top: 24px; display:flex; gap:12px; flex-wrap:wrap;">
+      <button class="btn-analyze" id="downloadBtn" style="background:linear-gradient(135deg,#1b3a2e,#0f5c3e)">
+        ↓ Download HTML Report
+      </button>
+      <button class="btn-analyze" id="resetBtn"
+        style="background:transparent; border:1px solid var(--border-bright); color:var(--muted);">
+        New Analysis
+      </button>
+    </div>
+  </div>
+
+</div><!-- .wrap -->
+
+<footer>PlagiaDetect · WordMatch × 0.20 + LCS × 0.20 + Edit × 0.20 + TF-IDF × 0.40</footer>
+</div><!-- .page -->
+
+<script>
+  const file1Input = document.getElementById('file1');
+  const file2Input = document.getElementById('file2');
+  const card1 = document.getElementById('card1');
+  const card2 = document.getElementById('card2');
+  const analyzeBtn = document.getElementById('analyzeBtn');
+  const analyzeHint = document.getElementById('analyzeHint');
+  const progressWrap = document.getElementById('progressWrap');
+  const progressFill = document.getElementById('progressFill');
+  const logBox = document.getElementById('logBox');
+  const resultsSection = document.getElementById('results-section');
+
+  let files = [null, null];
+  // store OCR data for tab switching
+  let ocrData = [{raw:'', clean:''}, {raw:'', clean:''}];
+
+  function setupCard(input, card, nameEl, idx) {
+    input.addEventListener('change', () => {
+      if (input.files[0]) {
+        files[idx] = input.files[0];
+        nameEl.textContent = input.files[0].name;
+        nameEl.classList.remove('placeholder');
+        card.classList.add('has-file');
+      }
+      checkReady();
+    });
+    card.addEventListener('dragover', e => { e.preventDefault(); card.classList.add('drag-over'); });
+    card.addEventListener('dragleave', () => card.classList.remove('drag-over'));
+    card.addEventListener('drop', e => {
+      e.preventDefault();
+      card.classList.remove('drag-over');
+      if (e.dataTransfer.files[0]) {
+        files[idx] = e.dataTransfer.files[0];
+        nameEl.textContent = files[idx].name;
+        nameEl.classList.remove('placeholder');
+        card.classList.add('has-file');
+      }
+      checkReady();
+    });
+  }
+
+  setupCard(file1Input, card1, document.getElementById('name1'), 0);
+  setupCard(file2Input, card2, document.getElementById('name2'), 1);
+
+  function checkReady() {
+    const ready = files[0] && files[1];
+    analyzeBtn.disabled = !ready;
+    analyzeHint.textContent = ready ? 'Ready to analyze' : 'Select two documents to begin';
+  }
+
+  function log(msg, type='info') {
+    logBox.style.display = 'block';
+    const ts = new Date().toLocaleTimeString('en', {hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    const line = document.createElement('div');
+    line.className = 'log-line ' + type;
+    line.innerHTML = `<span class="log-ts">${ts}</span><span>${msg}</span>`;
+    logBox.appendChild(line);
+    logBox.scrollTop = logBox.scrollHeight;
+  }
+
+  function setProgress(pct) {
+    progressWrap.style.display = 'block';
+    progressFill.style.width = pct + '%';
+  }
+
+  // ── Similarity algorithms (JS mirrors of the C implementations) ──
+
+  function wordMatch(a, b) {
+    const wa = a.split(/\s+/).filter(Boolean);
+    const wb = b.split(/\s+/).filter(Boolean);
+    if (!wa.length || !wb.length) return 0;
+    const setB = new Set(wb);
+    let matched = 0;
+    for (const w of wa) if (setB.has(w)) matched++;
+    return (matched / Math.max(wa.length, wb.length)) * 100;
+  }
+
+  function lcsLen(a, b) {
+    const m = a.length, n = b.length;
+    const dp = new Uint16Array((m+1)*(n+1));
+    for (let i=1;i<=m;i++) for(let j=1;j<=n;j++) {
+      if (a[i-1]===b[j-1]) dp[i*(n+1)+j]=dp[(i-1)*(n+1)+(j-1)]+1;
+      else dp[i*(n+1)+j]=Math.max(dp[(i-1)*(n+1)+j],dp[i*(n+1)+(j-1)]);
+    }
+    return dp[m*(n+1)+n];
+  }
+
+  function lcsSim(a, b) {
+    if (!a.length && !b.length) return 0;
+    const lcs = lcsLen(a.slice(0,800), b.slice(0,800));
+    return (lcs / Math.max(a.length,b.length,1)) * 100;
+  }
+
+  function editDist(a, b) {
+    const m=a.length, n=b.length;
+    const dp = [];
+    for(let i=0;i<=m;i++){dp[i]=[];for(let j=0;j<=n;j++){
+      if(!i)dp[i][j]=j;else if(!j)dp[i][j]=i;
+      else if(a[i-1]===b[j-1])dp[i][j]=dp[i-1][j-1];
+      else dp[i][j]=1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);
+    }}
+    return dp[m][n];
+  }
+
+  function editSim(a, b) {
+    const maxLen = Math.max(a.length,b.length);
+    if (!maxLen) return 0;
+    return (1 - editDist(a.slice(0,600),b.slice(0,600))/maxLen) * 100;
+  }
+
+  function tfidfSim(a, b) {
+    // TF-IDF cosine similarity (JS approximation)
+    const tokenize = t => t.toLowerCase().split(/\s+/).filter(Boolean);
+    const wa = tokenize(a), wb = tokenize(b);
+    const vocab = new Set([...wa, ...wb]);
+    const tf = arr => {
+      const m={}; arr.forEach(w=>m[w]=(m[w]||0)+1);
+      Object.keys(m).forEach(k=>m[k]/=arr.length); return m;
+    };
+    const tfa=tf(wa), tfb=tf(wb);
+    const docs=[wa,wb];
+    const idf={};
+    vocab.forEach(w=>{
+      let c=docs.filter(d=>d.includes(w)).length;
+      idf[w]=Math.log((docs.length+1)/(c+1))+1;
+    });
+    let dot=0, normA=0, normB=0;
+    vocab.forEach(w=>{
+      const va=(tfa[w]||0)*idf[w], vb=(tfb[w]||0)*idf[w];
+      dot+=va*vb; normA+=va*va; normB+=vb*vb;
+    });
+    if(!normA||!normB) return 0;
+    return (dot/(Math.sqrt(normA)*Math.sqrt(normB)))*100;
+  }
+
+  function cleanText(raw) {
+    return raw.toLowerCase().replace(/[^a-z ]/g,' ').replace(/\s+/g,' ').trim();
+  }
+
+  function readFileText(file) {
+    return new Promise((resolve) => {
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (ext === 'txt') {
+        const r = new FileReader();
+        r.onload = e => resolve(e.target.result);
+        r.readAsText(file);
+      } else {
+        // For image/PDF: return placeholder OCR note
+        resolve('[OCR would be performed by the C backend on: ' + file.name + ']');
+      }
+    });
+  }
+
+  analyzeBtn.addEventListener("click", async () => {
+
+if(!files[0]||!files[1]) return;
+
+const form=new FormData();
+
+form.append("file1",files[0]);
+form.append("file2",files[1]);
+
+log("Sending files...");
+
+const res=
+await fetch(
+"/analyze",
+{
+method:"POST",
+body:form
+}
+);
+
+const data=
+await res.json();
+
+log("Analysis completed","ok");
+
+alert(data.result);
+
+});
+
+  function renderResults(nameA, nameB, wm, lcs, edit, tfidf, final, rawA, rawB, cleanA, cleanB) {
+    const level = final >= 75 ? 'high' : final >= 45 ? 'medium' : 'low';
+    const verdicts = {
+      low: 'Low Similarity Detected',
+      medium: 'Moderate Overlap Found',
+      high: 'High Plagiarism Risk'
+    };
+    const colors = { low: 'var(--accent)', medium: 'var(--warn)', high: 'var(--danger)' };
+
+    // Donut
+    const circ = 2 * Math.PI * 50;
+    const filled = (final / 100) * circ;
+    const donutFill = document.getElementById('donutFill');
+    donutFill.style.stroke = colors[level];
+    donutFill.setAttribute('stroke-dasharray', `0 ${circ}`);
+    setTimeout(() => {
+      donutFill.setAttribute('stroke-dasharray', `${filled} ${circ - filled}`);
+    }, 100);
+
+    document.getElementById('finalPct').textContent = final.toFixed(1) + '%';
+    document.getElementById('finalPct').style.color = colors[level];
+
+    document.getElementById('pairNames').innerHTML =
+      `<span>${nameA}</span> vs <span>${nameB}</span>`;
+    document.getElementById('verdictText').textContent = verdicts[level];
+
+    const badge = document.getElementById('levelBadge');
+    badge.textContent = level.charAt(0).toUpperCase() + level.slice(1) + ' Similarity';
+    badge.className = 'level-badge ' + level;
+
+    // Algo values
+    const algos = [['wm',wm],['lcs',lcs],['edit',edit],['tfidf',tfidf]];
+    algos.forEach(([id, val]) => {
+      document.getElementById(id+'-val').textContent = val.toFixed(2) + '%';
+      setTimeout(() => {
+        document.getElementById(id+'-bar').style.width = Math.min(val,100) + '%';
+      }, 300);
+    });
+
+    // OCR Cards
+    document.getElementById('ocrNameA').textContent = nameA;
+    document.getElementById('ocrNameB').textContent = nameB;
+    showOcrTab(0, 'raw');
+    showOcrTab(1, 'raw');
+
+    // Download
+    document.getElementById('downloadBtn').onclick = () => downloadReport(
+      nameA, nameB, wm, lcs, edit, tfidf, final, level, rawA, rawB, cleanA, cleanB
+    );
+
+    resultsSection.style.display = 'block';
+    resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function switchTab(cardIdx, tab) {
+    showOcrTab(cardIdx, tab);
+    const card = cardIdx === 0 ? document.getElementById('ocrCardA') : document.getElementById('ocrCardB');
+    card.querySelectorAll('.ocr-tab-btn').forEach((btn, i) => {
+      btn.classList.toggle('active', (i===0 && tab==='raw') || (i===1 && tab==='clean'));
+    });
+  }
+
+  function showOcrTab(idx, tab) {
+    const textEl = idx === 0 ? document.getElementById('ocrTextA') : document.getElementById('ocrTextB');
+    const content = tab === 'raw' ? ocrData[idx].raw : ocrData[idx].clean;
+    textEl.textContent = content || '(empty)';
+    textEl.classList.toggle('empty', !content);
+  }
+
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    files = [null, null];
+    ocrData = [{raw:'',clean:''},{raw:'',clean:''}];
+    file1Input.value=''; file2Input.value='';
+    card1.classList.remove('has-file');
+    card2.classList.remove('has-file');
+    document.getElementById('name1').textContent='Choose file…';
+    document.getElementById('name1').classList.add('placeholder');
+    document.getElementById('name2').textContent='Choose file…';
+    document.getElementById('name2').classList.add('placeholder');
+    resultsSection.style.display='none';
+    logBox.innerHTML=''; logBox.style.display='none';
+    progressWrap.style.display='none';
+    progressFill.style.width='0%';
+    analyzeBtn.disabled=true;
+    analyzeHint.textContent='Select two documents to begin';
+  });
+function downloadReport(
+nameA,nameB,
+wm,lcs,edit,tfidf,
+final,
+level,
+rawA,rawB,
+cleanA,cleanB
+){
+
+const color=
+level==="high"
+?"#ff5e5e"
+:level==="medium"
+?"#ffb84d"
+:"#4af4c2";
+
+const report=`
+
+<!doctype html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8">
+
+<title>Plagiarism Report</title>
+
+<style>
+
+html{
+background:#07090f;
+}
+
+body{
+
+margin:0;
+
+background:#07090f;
+
+color:#e8edf8;
+
+padding:50px;
+
+font-family:Arial;
+
+}
+
+.container{
+
+max-width:900px;
+
+margin:auto;
+
+}
+
+.card{
+
+background:#151c2c;
+
+padding:25px;
+
+margin-bottom:20px;
+
+border-radius:18px;
+
+border:1px solid rgba(255,255,255,.08);
+
+}
+
+.title{
+
+text-align:center;
+
+font-size:40px;
+
+color:#4af4c2;
+
+}
+
+.score{
+
+font-size:80px;
+
+text-align:center;
+
+font-weight:bold;
+
+color:${color};
+
+}
+
+.subtitle{
+
+text-align:center;
+
+color:#90a0bc;
+
+}
+
+.text{
+
+background:#101826;
+
+padding:15px;
+
+border-radius:12px;
+
+white-space:pre-wrap;
+
+margin-top:10px;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="card">
+
+<div class="title">
+
+📄 Plagiarism Report
+
+</div>
+
+<br>
+
+<div class="score">
+
+${final.toFixed(2)}%
+
+</div>
+
+<div class="subtitle">
+
+${nameA} vs ${nameB}
+
+</div>
+
+</div>
+
+
+<div class="card">
+
+<h2>Scores</h2>
+
+<p>WordMatch → ${wm.toFixed(2)}%</p>
+
+<p>LCS → ${lcs.toFixed(2)}%</p>
+
+<p>Edit → ${edit.toFixed(2)}%</p>
+
+<p>TF-IDF → ${tfidf.toFixed(2)}%</p>
+
+</div>
+
+
+<div class="card">
+
+<h2>Document A</h2>
+
+<div class="text">
+
+${escapeHtml(rawA)}
+
+</div>
+
+</div>
+
+
+<div class="card">
+
+<h2>Document B</h2>
+
+<div class="text">
+
+${escapeHtml(rawB)}
+
+</div>
+
+</div>
+
+</div>
+
+</body>
+
+</html>
+
+`;
+
+const blob=
+new Blob(
+[report],
+{type:"text/html"}
+);
+
+const url=
+URL.createObjectURL(blob);
+
+const a=
+document.createElement("a");
+
+a.href=url;
+
+a.download="report.html";
+
+document.body.appendChild(a);
+
+a.click();
+
+a.remove();
+
+setTimeout(
+()=>URL.revokeObjectURL(url),
+1000
+);
+
+}
+
+function escapeHtml(t){
+
+return String(t||"")
+
+.replace(/&/g,"&amp;")
+.replace(/</g,"&lt;")
+.replace(/>/g,"&gt;");
+
+}
+</script>
+</body>
+</html>

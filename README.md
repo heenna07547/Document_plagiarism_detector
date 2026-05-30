@@ -132,7 +132,7 @@ The system provides:
 
 ## 👩‍💻 Author
 
-**Heena, Meenakshi Pandey, Kalika Garg**  
+**Heena**  
 B.Tech (AI & ML)2nd year students
 
 ⭐ If you like this project, consider giving it a star ⭐
